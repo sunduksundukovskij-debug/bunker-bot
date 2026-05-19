@@ -7,7 +7,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-API_TOKEN = '8422077163:AAF0oF7nALNGo-N_Lk6WUKXwoRS8T0hb0C4'
+API_TOKEN = '8422077163:AAHsR-dTCHTg8NVrMffi6juW_L9H-Y64bIk'
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
