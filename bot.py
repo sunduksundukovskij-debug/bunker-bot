@@ -6,17 +6,14 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-# Твій токен
 API_TOKEN = '8422077163:AAF0oF7nALNGo-N_Lk6WUKXwoRS8T0hb0C4'
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
-# Сховище для ігор
 games = {}
 
-# Стан для очікування коду
 class GameStates(StatesGroup):
     waiting_for_code = State()
 
@@ -39,10 +36,8 @@ async def send_welcome(message: types.Message, state: FSMContext):
     builder.button(text="➕ Створити гру", callback_data="make_room")
     builder.button(text="🔑 Приєднатися", callback_data="join_room")
     builder.adjust(1)
-
     await message.answer(
-        "🌋 **Вітаємо у грі «Бункер»!** 🌋\n\n"
-        "Створюйте лобі для друзів або приєднуйтесь до гри за кодом.",
+        "🌋 **Вітаємо у грі «Бункер»!** 🌋\n\nСтворюйте лобі для друзів або приєднуйтесь до гри за кодом.",
         reply_markup=builder.as_markup(),
         parse_mode="Markdown"
     )
@@ -52,12 +47,8 @@ async def cb_create(callback: types.CallbackQuery):
     game_id = str(random.randint(1000, 9999))
     catastrophe = random.choice(CATASTROPHES)
     games[game_id] = {"catastrophe": catastrophe}
-    
     await callback.message.answer(
-        f"🎮 **Гру створено!**\n\n"
-        f"🌍 **Катастрофа:** {catastrophe}\n"
-        f"🔑 **Код для друзів:** `{game_id}`\n\n"
-        f"Надішліть цей код друзям, щоб вони могли приєднатися!",
+        f"🎮 **Гру створено!**\n\n🌍 **Катастрофа:** {catastrophe}\n🔑 **Код для друзів:** `{game_id}`\n\nНадішліть цей код друзям!",
         parse_mode="Markdown"
     )
     await callback.answer()
@@ -70,16 +61,12 @@ async def cb_join(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.message(GameStates.waiting_for_code)
 async def process_code(message: types.Message, state: FSMContext):
-    # Перевіряємо, чи ввів користувач цифри
     game_id = message.text.strip()
-    
     if game_id not in games:
-        await message.answer("❌ **Помилка!** Гра з таким кодом не знайдена.\nСпробуйте ще раз або натисніть /start")
+        await message.answer("❌ **Помилка!** Гра не знайдена. Перевірте код або натисніть /start")
         return
-
     await state.clear()
     catastrophe = games[game_id]["catastrophe"]
-    
     response = (
         f"🚨 **ВИ У ГРІ #{game_id}** 🚨\n\n"
         f"🌍 **Спільна катастрофа:**\n{catastrophe}\n"
@@ -88,4 +75,13 @@ async def process_code(message: types.Message, state: FSMContext):
         f"• 🛠 **Професія:** {random.choice(PROFESSIONS)}\n"
         f"• ❤️ **Здоров'я:** {random.choice(HEALTH_STATUS)}\n"
         f"• 🎸 **Хобі:** {random.choice(HOBBIES)}\n"
-        f"
+        f"• 🎒 **Багаж:** {random.choice(BAGGAGE)}\n\n"
+        f"📣 **Час переконувати інших!**"
+    )
+    await message.answer(response, parse_mode="Markdown")
+
+if __name__ == '__main__':
+    import asyncio
+    async def main():
+        await dp.start_polling(bot)
+    asyncio.run(main())
