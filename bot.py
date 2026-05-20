@@ -58,7 +58,6 @@ SPECIAL_ABILITIES = [
     "🧨 Анулювати результати голосування (1 раз)."
 ]
 
-# РОЗШИРЕНІ КАТАСТРОФИ
 CATASTROPHES = [
     "🌋 Ядерна зима (10 років)", "🧟 Зомбі-апокаліпсис (5 років)", "🌊 Всесвітній потоп",
     "👽 Нашестя іншопланетян", "☀️ Гіперсонячний спалах", "❄️ Льодовиковий період",
@@ -81,7 +80,13 @@ BUNKER_TYPES = [
     "🛸 Космічна станція: Повний захист від земних катастроф, але обмежений кисень."
 ]
 
-BUNKER_PROBLEMS = ["зламаний генератор", "протікає дах", "немає вентиляції", "забагато мишей", "старе радіо", "грибок на стінах"]
+# ОНОВЛЕНИЙ СПИСОК ПРОБЛЕМ
+BUNKER_PROBLEMS = [
+    "зламаний генератор", "протікає дах", "немає вентиляції", "забагато мишей", "старе радіо", "грибок на стінах",
+    "✅ Жодних проблем! Бункер в ідеальному стані.",
+    "✅ Проблем не виявлено.",
+    "✅ Усе обладнання працює справно."
+]
 
 SECRET_GOALS = [
     "🤫 Мета: Переконати всіх взяти найстаршого гравця.",
@@ -95,7 +100,6 @@ SECRET_GOALS = [
     "🤫 Мета: Не допустити в бункер людину з багажем 'Зброя'."
 ]
 
-# РОЗШИРЕНІ ІВЕНТИ
 RANDOM_EVENTS = [
     "⚠️ ПОДІЯ: Землетрус! Всі міняються багажем по колу!",
     "⚠️ ПОДІЯ: Витік газу! Ті, хто хворі, мовчать 1 хв.",
@@ -120,17 +124,22 @@ async def send_welcome(message: types.Message, state: FSMContext):
 @dp.callback_query(F.data == "make_room")
 async def cb_create(callback: types.CallbackQuery):
     game_id = str(random.randint(1000, 9999))
+    prob = random.choice(BUNKER_PROBLEMS)
+    # Змінюємо іконку залежно від того, чи є проблема
+    status_icon = "❌ Проблема:" if "✅" not in prob else "⚙️ Стан:"
+    
     games[game_id] = {
         "catastrophe": random.choice(CATASTROPHES),
         "bunker": random.choice(BUNKER_TYPES),
-        "prob": random.choice(BUNKER_PROBLEMS),
+        "prob": prob,
+        "status_icon": status_icon,
         "players": []
     }
     await callback.message.answer(
         f"🎮 **Гру #{game_id} створено!**\n\n"
         f"🌍 **Катастрофа:** {games[game_id]['catastrophe']}\n"
         f"🛡 **Тип бункера:** {games[game_id]['bunker']}\n"
-        f"❌ **Проблема:** {games[game_id]['prob']}\n\n"
+        f"{games[game_id]['status_icon']} {games[game_id]['prob']}\n\n"
         f"🔑 **Код:** `{game_id}`",
         parse_mode="Markdown"
     )
@@ -182,7 +191,7 @@ async def process_code(message: types.Message, state: FSMContext):
         f"🚨 **ВИ У ГРІ #{game_id}**\n\n"
         f"🌍 **Катастрофа:** {g['catastrophe']}\n"
         f"🛡 **Тип бункера:** {g['bunker']}\n"
-        f"❌ **Проблема:** {g['prob']}\n\n"
+        f"{g['status_icon']} {g['prob']}\n\n"
         f"💼 **Ваша картка:**\n"
         f"• 👤 Стать: {random.choice(GENDERS)}\n"
         f"• 🛠 Професія: {random.choice(PROFESSIONS)}\n"
@@ -202,7 +211,6 @@ if __name__ == '__main__':
         await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
     
-    import asyncio
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
