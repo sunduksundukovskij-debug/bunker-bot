@@ -47,16 +47,15 @@ RANDOM_EVENTS = [
 
 def get_reveal_keyboard(game_id):
     builder = InlineKeyboardBuilder()
-    builder.button(text="🛠 Професія", callback_data=f"rev_prof_{game_id}")
-    builder.button(text="❤️ Здоров'я", callback_data=f"rev_health_{game_id}")
+    builder.button(text="🛠 Проф", callback_data=f"rev_prof_{game_id}")
+    builder.button(text="❤️ Здор", callback_data=f"rev_health_{game_id}")
     builder.button(text="🎒 Багаж", callback_data=f"rev_bag_{game_id}")
     builder.button(text="🎸 Хобі", callback_data=f"rev_hobby_{game_id}")
     builder.button(text="😱 Фобія", callback_data=f"rev_phobia_{game_id}")
-    builder.button(text="✨ Здібність", callback_data=f"rev_spec_{game_id}")
-    # Нові кнопки управління грою
+    builder.button(text="✨ Здібн", callback_data=f"rev_spec_{game_id}")
     builder.button(text="🗳 Голосування", callback_data=f"game_vote_{game_id}")
-    builder.button(text="⚠️ Подія (1 раз)", callback_data=f"game_event_{game_id}")
-    builder.adjust(2)
+    builder.button(text="⚠️ Подія", callback_data=f"game_event_{game_id}")
+    builder.adjust(3)
     return builder.as_markup()
 
 @dp.message(Command("start"))
@@ -76,9 +75,9 @@ async def cb_create(callback: types.CallbackQuery):
         "bunker": random.choice(BUNKER_TYPES),
         "prob": random.choice(BUNKER_PROBLEMS),
         "players": {},
-        "event_triggered": False  # Прапорець для івенту
+        "event_triggered": False
     }
-    await callback.message.answer(f"🎮 **Гру #{game_id} створено!**\n\n🌍 {games[game_id]['catastrophe']}\n🔑 Код: `{game_id}`", parse_mode="Markdown")
+    await callback.message.answer(f"🎮 **Гру #{game_id} створено!**\n\n🌍 {games[game_id]['catastrophe']}\n🛡 Бункер: {games[game_id]['bunker']}\n⚙️ Стан: {games[game_id]['prob']}\n🔑 Код: `{game_id}`", parse_mode="Markdown")
     await callback.answer()
 
 @dp.callback_query(F.data == "join_room")
@@ -113,7 +112,7 @@ async def process_code(message: types.Message, state: FSMContext):
         f"🛠 Професія: {c['prof']}\n❤️ Здоров'я: {c['health']}\n"
         f"🎒 Багаж: {c['bag']}\n🎸 Хобі: {c['hobby']}\n"
         f"😱 Фобія: {c['phobia']}\n✨ Здібність: {c['spec']}\n\n{c['goal']}\n"
-        f"------------------------------\n👇 **Дії гравця:**"
+        f"------------------------------"
     )
     await state.clear()
     await message.answer(response, reply_markup=get_reveal_keyboard(game_id), parse_mode="Markdown")
@@ -123,7 +122,7 @@ async def cb_reveal(callback: types.CallbackQuery):
     data = callback.data.split("_")
     attr_type, game_id = data[1], data[2]
     card = player_cards.get(callback.from_user.id)
-    mapping = {"prof": ("🛠 Професію", card["prof"]), "health": ("❤️ Здоров'я", card["health"]), "bag": ("🎒 Багаж", card["bag"]), "hobby": ("🎸 Хобі", card["hobby"]), "phobia": ("😱 Фобію", card["phobia"]), "spec": ("✨ Здібність", card["spec"])}
+    mapping = {"prof": ("🛠 Проф", card["prof"]), "health": ("❤️ Здоров'я", card["health"]), "bag": ("🎒 Багаж", card["bag"]), "hobby": ("🎸 Хобі", card["hobby"]), "phobia": ("😱 Фобію", card["phobia"]), "spec": ("✨ Здібн", card["spec"])}
     label, value = mapping[attr_type]
     msg = f"📢 **{callback.from_user.first_name}** розкриває {label}:\n➡️ `{value}`"
     for p_id in games[game_id]["players"]:
@@ -134,28 +133,60 @@ async def cb_reveal(callback: types.CallbackQuery):
 @dp.callback_query(F.data.startswith("game_vote_"))
 async def cb_vote(callback: types.CallbackQuery):
     game_id = callback.data.split("_")[2]
-    player_names = list(games[game_id]["players"].values())
+    # Створюємо кнопки для вибору, кого вигнати
+    builder = InlineKeyboardBuilder()
+    for p_id, p_name in games[game_id]["players"].items():
+        builder.button(text=f"Вигнати {p_name}", callback_data=f"kick_{p_id}_{game_id}")
+    builder.adjust(1)
+    
     for p_id in games[game_id]["players"]:
-        try:
-            await bot.send_poll(chat_id=p_id, question=f"🗳 Голосування (Гра #{game_id}): Кого виженемо?", options=player_names[:10], is_anonymous=False)
+        try: await bot.send_message(p_id, "🗳 **ГОЛОСУВАННЯ!** Оберіть, хто на вашу думку має піти:", reply_markup=builder.as_markup())
         except: pass
-    await callback.answer("Голосування запущено!")
+    await callback.answer()
+
+@dp.callback_query(F.data.startswith("kick_"))
+async def cb_kick(callback: types.CallbackQuery):
+    data = callback.data.split("_")
+    kicked_id = int(data[1])
+    game_id = data[2]
+    
+    k_name = games[game_id]["players"].get(kicked_id, "Невідомий")
+    c = player_cards.get(kicked_id)
+    
+    # Формуємо повну характеристику для розкриття
+    reveal_msg = (
+        f"🚪 **ГРАВЦЯ {k_name} ВИГНАНО!**\n\n"
+        f"📜 **Його справжня анкета:**\n"
+        f"• Стать/Вік: {c['gender']}, {c['age']}\n"
+        f"• Професія: {c['prof']}\n"
+        f"• Здоров'я: {c['health']}\n"
+        f"• Багаж: {c['bag']}\n"
+        f"• Фобія: {c['phobia']}\n"
+        f"• Психіка: {c['psych']}\n"
+        f"• Мета: {c['goal']}"
+    )
+    
+    for p_id in games[game_id]["players"]:
+        try: await bot.send_message(p_id, reveal_msg)
+        except: pass
+    await callback.answer()
 
 @dp.callback_query(F.data.startswith("game_event_"))
 async def cb_event(callback: types.CallbackQuery):
     game_id = callback.data.split("_")[2]
     if games[game_id]["event_triggered"]:
-        return await callback.answer("❌ Івент вже був використаний у цій грі!", show_alert=True)
+        return await callback.answer("❌ Івент вже використано!", show_alert=True)
     
     games[game_id]["event_triggered"] = True
     event = random.choice(RANDOM_EVENTS)
     for p_id in games[game_id]["players"]:
-        try: await bot.send_message(p_id, f"🔥 **РАНДОМНА ПОДІЯ!**\n\n{event}", parse_mode="Markdown")
+        try: await bot.send_message(p_id, f"🔥 **РАНДОМНА ПОДІЯ!**\n\n{event}")
         except: pass
-    await callback.answer("Подію активовано!")
+    await callback.answer()
 
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
+    await asyncio.sleep(1)
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
