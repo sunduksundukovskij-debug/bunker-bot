@@ -14,7 +14,6 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
-# База даних у пам'яті
 games = {}
 player_cards = {} 
 
@@ -28,23 +27,35 @@ AGES = ["18 років", "22 роки", "25 років", "30 років", "33 р
 GENDERS = ["Чоловік", "Жінка"]
 PSYCH = ["Спокійний", "Панікер", "Агресивний", "Оптиміст", "Параноїк", "Лідер", "Меланхолік", "Цинік", "Азартний", "Добряк"]
 HOBBIES = ["Стрільба", "Гітара", "Садівництво", "Виживання", "Бокс", "Малювання", "Риболовля", "Паркур", "Кулінарія", "Йога"]
-BAGGAGE = ["Ніж", "Аптечка", "Насіння", "Рація", "Ліхтарик", "Рушниця", "Протигаз", "Набір хіміка", "Еліксир Молодості", "Гітара", "Інструменти", "Запальничка", "Компас", "📦 Ящик консервів", "🥖 Сухпайок", "🍶 Запас води"]
+BAGGAGE = ["Ніж", "Аптечка", "Насіння", "Рація", "Ліхтарик", "Рушниця", "Протигаз", "Набір хіміка", "Еліксир Молодості", "Гітара", "Інструменти", "Запальничка", "Компас", "📦 Консерви", "🥖 Сухпайок", "🍶 Запас води"]
 PHOBIAS = ["Клаустрофобія", "Ахлуофобія", "Мізофобія", "Герпетофобія", "Соціофобія", "Немає", "Безстрашний(а)"]
 SPECIAL_ABILITIES = ["🔄 Помінятися багажем", "⏳ Помінятися віком", "📢 'Заткнути' гравця", "🛡 Імунітет від вигнання", "📝 Змінити професію", "👁 Дізнатися секрет", "🧨 Анулювати голос"]
 
 CATASTROPHES = ["🌋 Ядерна зима", "🧟 Зомбі-апокаліпсис", "🌊 Всесвітній потоп", "👽 Нашестя іншопланетян", "☀️ Сонячний спалах", "❄️ Льодовиковий період", "☣️ Глобальна пандемія", "🏜 Глобальна засуха"]
 BUNKER_TYPES = ["📦 Звичайний", "🧬 Технологічний", "🧪 Експериментальний", "🌿 Гідропонний", "🛠 Військовий", "🏨 Люкс-бункер", "🛸 Космічна станція"]
-BUNKER_PROBLEMS = ["зламаний генератор", "протікає дах", "немає вентиляції", "✅ Жодних проблем!", "✅ Стан ідеальний", "✅ Усе обладнання справне"]
+BUNKER_PROBLEMS = ["зламаний генератор", "протікає дах", "немає вентиляції", "✅ Жодних проблем!", "✅ Стан ідеальний"]
 SECRET_GOALS = ["🤫 Мета: Переконати всіх взяти найстаршого.", "🤫 Мета: Вижити разом із 'Лікарем'.", "🤫 Мета: Вигнати 'Поліцейського'.", "🤫 Мета: Вижити будь-якою ціною."]
+
+RANDOM_EVENTS = [
+    "⚠️ ПОДІЯ: Землетрус! Всі міняються багажем по колу!",
+    "⚠️ ПОДІЯ: Витік газу! Ті, хто хворі, мовчать 1 хв.",
+    "⚠️ ПОДІЯ: Сонячна буря! Всі гравці старше 40 років втрачають право голосу на раунд.",
+    "⚠️ ПОДІЯ: Мутація! Випадковий гравець змінює свою Професію.",
+    "⚠️ ПОДІЯ: Чутки про допомогу! Вигнання в цьому раунді скасовується.",
+    "⚠️ ПОДІЯ: Обвал входу! Тепер у бункер зможе потрапити на одну людину менше."
+]
 
 def get_reveal_keyboard(game_id):
     builder = InlineKeyboardBuilder()
-    builder.button(text="🛠 Професія", callback_data=f"reveal_prof_{game_id}")
-    builder.button(text="❤️ Здоров'я", callback_data=f"reveal_health_{game_id}")
-    builder.button(text="🎒 Багаж", callback_data=f"reveal_bag_{game_id}")
-    builder.button(text="🎸 Хобі", callback_data=f"reveal_hobby_{game_id}")
-    builder.button(text="😱 Фобія", callback_data=f"reveal_phobia_{game_id}")
-    builder.button(text="✨ Здібність", callback_data=f"reveal_spec_{game_id}")
+    builder.button(text="🛠 Професія", callback_data=f"rev_prof_{game_id}")
+    builder.button(text="❤️ Здоров'я", callback_data=f"rev_health_{game_id}")
+    builder.button(text="🎒 Багаж", callback_data=f"rev_bag_{game_id}")
+    builder.button(text="🎸 Хобі", callback_data=f"rev_hobby_{game_id}")
+    builder.button(text="😱 Фобія", callback_data=f"rev_phobia_{game_id}")
+    builder.button(text="✨ Здібність", callback_data=f"rev_spec_{game_id}")
+    # Нові кнопки управління грою
+    builder.button(text="🗳 Голосування", callback_data=f"game_vote_{game_id}")
+    builder.button(text="⚠️ Подія (1 раз)", callback_data=f"game_event_{game_id}")
     builder.adjust(2)
     return builder.as_markup()
 
@@ -64,16 +75,10 @@ async def cb_create(callback: types.CallbackQuery):
         "catastrophe": random.choice(CATASTROPHES),
         "bunker": random.choice(BUNKER_TYPES),
         "prob": random.choice(BUNKER_PROBLEMS),
-        "players": {}
+        "players": {},
+        "event_triggered": False  # Прапорець для івенту
     }
-    await callback.message.answer(
-        f"🎮 **Гру #{game_id} створено!**\n\n"
-        f"🌍 **Катастрофа:** {games[game_id]['catastrophe']}\n"
-        f"🛡 **Бункер:** {games[game_id]['bunker']}\n"
-        f"⚙️ **Стан:** {games[game_id]['prob']}\n\n"
-        f"🔑 Код: `{game_id}`", 
-        parse_mode="Markdown"
-    )
+    await callback.message.answer(f"🎮 **Гру #{game_id} створено!**\n\n🌍 {games[game_id]['catastrophe']}\n🔑 Код: `{game_id}`", parse_mode="Markdown")
     await callback.answer()
 
 @dp.callback_query(F.data == "join_room")
@@ -92,75 +97,62 @@ async def process_code(message: types.Message, state: FSMContext):
     games[game_id]["players"][user_id] = message.from_user.first_name
     
     player_cards[user_id] = {
-        "prof": random.choice(PROFESSIONS),
-        "health": random.choice(HEALTH_STATUS),
-        "bag": random.choice(BAGGAGE),
-        "hobby": random.choice(HOBBIES),
-        "phobia": random.choice(PHOBIAS),
-        "spec": random.choice(SPECIAL_ABILITIES),
-        "age": random.choice(AGES),
-        "gender": random.choice(GENDERS),
-        "psych": random.choice(PSYCH),
-        "goal": random.choice(SECRET_GOALS)
+        "prof": random.choice(PROFESSIONS), "health": random.choice(HEALTH_STATUS),
+        "bag": random.choice(BAGGAGE), "hobby": random.choice(HOBBIES),
+        "phobia": random.choice(PHOBIAS), "spec": random.choice(SPECIAL_ABILITIES),
+        "age": random.choice(AGES), "gender": random.choice(GENDERS),
+        "psych": random.choice(PSYCH), "goal": random.choice(SECRET_GOALS)
     }
     
-    g = games[game_id]
-    c = player_cards[user_id]
-    
+    g, c = games[game_id], player_cards[user_id]
     response = (
-        f"🚨 **ВИ У ГРІ #{game_id}**\n\n"
-        f"🌍 **КАТАСТРОФА:** {g['catastrophe']}\n"
-        f"🛡 **БУНКЕР:** {g['bunker']}\n"
-        f"⚠️ **СТАН:** {g['prob']}\n"
-        f"------------------------------\n"
-        f"💼 **ВАША КАРТКА:**\n"
-        f"👤 {c['gender']}, {c['age']}\n"
-        f"🧠 Психіка: {c['psych']}\n"
-        f"🛠 Професія: {c['prof']}\n"
-        f"❤️ Здоров'я: {c['health']}\n"
-        f"🎒 Багаж: {c['bag']}\n"
-        f"🎸 Хобі: {c['hobby']}\n"
-        f"😱 Фобія: {c['phobia']}\n"
-        f"✨ Здібність: {c['spec']}\n\n"
-        f"{c['goal']}\n"
-        f"------------------------------\n"
-        f"👇 **Розкрити характеристику всім гравцям:**"
+        f"🚨 **ГРА #{game_id}**\n\n🌍 **КАТАСТРОФА:** {g['catastrophe']}\n"
+        f"🛡 **БУНКЕР:** {g['bunker']}\n⚠️ **СТАН:** {g['prob']}\n"
+        f"------------------------------\n💼 **ВАША КАРТКА:**\n"
+        f"👤 {c['gender']}, {c['age']} | 🧠 {c['psych']}\n"
+        f"🛠 Професія: {c['prof']}\n❤️ Здоров'я: {c['health']}\n"
+        f"🎒 Багаж: {c['bag']}\n🎸 Хобі: {c['hobby']}\n"
+        f"😱 Фобія: {c['phobia']}\n✨ Здібність: {c['spec']}\n\n{c['goal']}\n"
+        f"------------------------------\n👇 **Дії гравця:**"
     )
-    
     await state.clear()
     await message.answer(response, reply_markup=get_reveal_keyboard(game_id), parse_mode="Markdown")
 
-@dp.callback_query(F.data.startswith("reveal_"))
+@dp.callback_query(F.data.startswith("rev_"))
 async def cb_reveal(callback: types.CallbackQuery):
     data = callback.data.split("_")
     attr_type, game_id = data[1], data[2]
-    
-    if game_id not in games:
-        return await callback.answer("Гра не знайдена", show_alert=True)
-    
-    user_id = callback.from_user.id
-    user_name = callback.from_user.first_name
-    card = player_cards.get(user_id)
-    
-    mapping = {
-        "prof": ("🛠 Професію", card["prof"]),
-        "health": ("❤️ Здоров'я", card["health"]),
-        "bag": ("🎒 Багаж", card["bag"]),
-        "hobby": ("🎸 Хобі", card["hobby"]),
-        "phobia": ("😱 Фобію", card["phobia"]),
-        "spec": ("✨ Здібність", card["spec"])
-    }
-    
+    card = player_cards.get(callback.from_user.id)
+    mapping = {"prof": ("🛠 Професію", card["prof"]), "health": ("❤️ Здоров'я", card["health"]), "bag": ("🎒 Багаж", card["bag"]), "hobby": ("🎸 Хобі", card["hobby"]), "phobia": ("😱 Фобію", card["phobia"]), "spec": ("✨ Здібність", card["spec"])}
     label, value = mapping[attr_type]
-    reveal_msg = f"📢 **{user_name}** розкриває {label}:\n➡️ `{value}`"
-    
+    msg = f"📢 **{callback.from_user.first_name}** розкриває {label}:\n➡️ `{value}`"
+    for p_id in games[game_id]["players"]:
+        try: await bot.send_message(p_id, msg, parse_mode="Markdown")
+        except: pass
+    await callback.answer()
+
+@dp.callback_query(F.data.startswith("game_vote_"))
+async def cb_vote(callback: types.CallbackQuery):
+    game_id = callback.data.split("_")[2]
+    player_names = list(games[game_id]["players"].values())
     for p_id in games[game_id]["players"]:
         try:
-            await bot.send_message(p_id, reveal_msg, parse_mode="Markdown")
-        except:
-            pass
-            
-    await callback.answer(f"Розкрито для всіх: {value}")
+            await bot.send_poll(chat_id=p_id, question=f"🗳 Голосування (Гра #{game_id}): Кого виженемо?", options=player_names[:10], is_anonymous=False)
+        except: pass
+    await callback.answer("Голосування запущено!")
+
+@dp.callback_query(F.data.startswith("game_event_"))
+async def cb_event(callback: types.CallbackQuery):
+    game_id = callback.data.split("_")[2]
+    if games[game_id]["event_triggered"]:
+        return await callback.answer("❌ Івент вже був використаний у цій грі!", show_alert=True)
+    
+    games[game_id]["event_triggered"] = True
+    event = random.choice(RANDOM_EVENTS)
+    for p_id in games[game_id]["players"]:
+        try: await bot.send_message(p_id, f"🔥 **РАНДОМНА ПОДІЯ!**\n\n{event}", parse_mode="Markdown")
+        except: pass
+    await callback.answer("Подію активовано!")
 
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
