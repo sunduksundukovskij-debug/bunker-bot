@@ -10,7 +10,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 # --- КОНФІГУРАЦІЯ ---
-# Обов'язково додай BOT_TOKEN у вкладку Environment на Render
 API_TOKEN = os.getenv('BOT_TOKEN')
 
 if not API_TOKEN:
@@ -104,7 +103,7 @@ RANDOM_EVENTS = [
     "⚠️ ПОДІЯ: Знайдено рюкзак! Хто перший напише 'БУНКЕР', отримує бонус!"
 ]
 
-# --- ОБРОБНИКИ КОМАНД ---
+# --- ОБРОБНИКИ ---
 
 @dp.message(Command("start"))
 async def send_welcome(message: types.Message, state: FSMContext):
@@ -136,27 +135,7 @@ async def cb_create(callback: types.CallbackQuery):
 
 @dp.message(Command("event"))
 async def trigger_event(message: types.Message):
-    event = random.choice(RANDOM_EVENTS)
-    await message.answer(event)
-    if "рюкзак" in event:
-        active_bonuses[message.chat.id] = True
-
-@dp.message(Command("vote"))
-async def start_vote(message: types.Message):
-    game_id = next(iter(games), None)
-    if not game_id or not games[game_id]["players"]:
-        return await message.answer("❌ Ще ніхто не приєднався!")
-    await message.answer_poll(
-        question="Кого виженемо?",
-        options=games[game_id]["players"][:10],
-        is_anonymous=True
-    )
-
-@dp.message(F.text == "БУНКЕР")
-async def catch_bonus(message: types.Message):
-    if message.chat.id in active_bonuses:
-        del active_bonuses[message.chat.id] 
-        await message.reply(f"🎉 Бонус: **{random.choice(BONUS_BAGGAGE)}**")
+    await message.answer(random.choice(RANDOM_EVENTS))
 
 @dp.callback_query(F.data == "join_room")
 async def cb_join(callback: types.CallbackQuery, state: FSMContext):
@@ -176,6 +155,8 @@ async def process_code(message: types.Message, state: FSMContext):
         games[game_id]["players"].append(p_name)
     
     g = games[game_id]
+    
+    # ТУТ ТЕПЕР ПОВНА КАРТКА З УСІМА ХАРАКТЕРИСТИКАМИ
     response = (
         f"🚨 **ВИ У ГРІ #{game_id}**\n\n"
         f"🌍 **Катастрофа:** {g['catastrophe']}\n"
@@ -195,14 +176,9 @@ async def process_code(message: types.Message, state: FSMContext):
     )
     await message.answer(response, parse_mode="Markdown")
 
-# --- ЗАПУСК ---
 async def main():
-    print("Бот запускається...")
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        pass
+    asyncio.run(main())
