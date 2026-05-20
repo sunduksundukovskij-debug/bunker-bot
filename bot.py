@@ -10,10 +10,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 # --- КОНФІГУРАЦІЯ ---
+# Обов'язково додай BOT_TOKEN у вкладку Environment на Render
 API_TOKEN = os.getenv('BOT_TOKEN')
 
 if not API_TOKEN:
-    logging.error("КРИТИЧНА ПОМИЛКА: BOT_TOKEN не знайдено в налаштуваннях!")
+    print("КРИТИЧНА ПОМИЛКА: BOT_TOKEN не знайдено в налаштуваннях Render!")
     sys.exit(1)
 
 logging.basicConfig(level=logging.INFO)
@@ -196,7 +197,7 @@ async def process_code(message: types.Message, state: FSMContext):
 
 # --- ЗАПУСК ---
 async def main():
-    logging.info("Бот запускається...")
+    print("Бот запускається...")
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
@@ -204,4 +205,4 @@ if __name__ == '__main__':
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logging.info("Бот зупинений")
+        pass
