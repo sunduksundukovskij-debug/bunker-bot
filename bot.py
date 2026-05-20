@@ -124,10 +124,23 @@ async def process_code(message: types.Message, state: FSMContext):
         "spec_used": False
     }
     g, c = games[game_id], player_cards[u_id]
-    response = (f"🚨 **ВИ У ГРІ #{game_id}**\n\n🌍 **СВІТ:** {g['catastrophe']}\n⏳ **Термін:** {g['stay_time']} років\n"
-                f"🛡 **БУНКЕР:** {g['bunker']}\n⚠️ **СТАН:** {g['prob']}\n------------------------------\n"
-                f"💼 **ВАША КАРТКА:**\n👤 {c['gender']}, {c['age']}\n🛠 Проф: {c['prof']}\n❤️ Здор: {c['health']}\n"
-                f"🎒 Багаж: {c['bag']}\n😱 Фобія: {c['phobia']}\n✨ Здібність: {c['spec']}\n\n{c['goal']}")
+    response = (f"🚨 **ВИ У ГРІ #{game_id}**\n\n"
+                f"🌍 **СВІТ:** {g['catastrophe']}\n"
+                f"⏳ **Термін:** {g['stay_time']} років\n"
+                f"🛡 **БУНКЕР:** {g['bunker']}\n"
+                f"⚠️ **СТАН:** {g['prob']}\n"
+                f"------------------------------\n"
+                f"💼 **ВАША КАРТКА:**\n"
+                f"👤 Стать: {c['gender']}\n"
+                f"⏳ Вік: {c['age']}\n"
+                f"🧠 Психіка: {c['psych']}\n"
+                f"🛠 Професія: {c['prof']}\n"
+                f"❤️ Здоров'я: {c['health']}\n"
+                f"🎒 Багаж: {c['bag']}\n"
+                f"🎸 Хобі: {c['hobby']}\n"
+                f"😱 Фобія: {c['phobia']}\n"
+                f"✨ Здібність: {c['spec']}\n\n"
+                f"{c['goal']}")
     await state.clear()
     await message.answer(response, reply_markup=get_reveal_keyboard(game_id), parse_mode="Markdown")
 
@@ -140,7 +153,7 @@ async def game_chat(message: types.Message):
             if p_id != message.from_user.id:
                 await bot.send_message(p_id, f"💬 **{message.from_user.first_name}**: {message.text}")
 
-# --- ФУНКЦІЇ ВІДКРИТТЯ (rev_) ---
+# --- ФУНКЦІЇ ВІДКРИТТЯ ---
 @dp.callback_query(F.data.startswith("rev_"))
 async def cb_reveal(callback: types.CallbackQuery):
     data = callback.data.split("_")
@@ -148,13 +161,22 @@ async def cb_reveal(callback: types.CallbackQuery):
     if attr in games[g_id]["revealed"] and u_id not in games[g_id]["revealed"][attr]:
         games[g_id]["revealed"][attr].append(u_id)
     card = player_cards[u_id]
-    mapping = {"gen": ("Стать", card["gender"]), "age": ("Вік", card["age"]), "psy": ("Психіку", card["psych"]), "prof": ("Проф", card["prof"]), "health": ("Здоров'я", card["health"]), "bag": ("Багаж", card["bag"]), "hobby": ("Хобі", card["hobby"]), "phobia": ("Фобію", card["phobia"])}
+    mapping = {
+        "gen": ("Стать", card["gender"]), 
+        "age": ("Вік", card["age"]), 
+        "psy": ("Психіку", card["psych"]), 
+        "prof": ("Проф", card["prof"]), 
+        "health": ("Здоров'я", card["health"]), 
+        "bag": ("Багаж", card["bag"]), 
+        "hobby": ("Хобі", card["hobby"]), 
+        "phobia": ("Фобію", card["phobia"])
+    }
     label, val = mapping[attr]
     for p_id in games[g_id]["players"]:
         await bot.send_message(p_id, f"📢 {callback.from_user.first_name} відкриває {label}: `{val}`")
     await callback.answer()
 
-# --- ПОДІЇ (ЗЕМЛЕТРУС ТА ІНШІ) ---
+# --- ПОДІЇ ТА ЗДІБНОСТІ ---
 @dp.callback_query(F.data.startswith("game_event_"))
 async def cb_event(callback: types.CallbackQuery):
     g_id = callback.data.split("_")[2]
@@ -174,7 +196,6 @@ async def cb_event(callback: types.CallbackQuery):
             for p_id in games[g_id]["players"]: await bot.send_message(p_id, res)
     await callback.answer()
 
-# --- ЗДІБНОСТІ ТА ГОЛОСУВАННЯ ---
 @dp.callback_query(F.data.startswith("use_spec_"))
 async def cb_spec(callback: types.CallbackQuery):
     u_id, g_id = callback.from_user.id, callback.data.split("_")[2]
