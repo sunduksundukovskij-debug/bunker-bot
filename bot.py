@@ -189,7 +189,6 @@ async def cb_spec(callback: types.CallbackQuery):
     player_cards[u_id]["spec_used"] = True
     spec_name = player_cards[u_id]["spec"]
     
-    # ЛОГІКА ЗМІНИ СТАТІ
     if spec_name == "🧬 Змінити стать":
         old_gender = player_cards[u_id]["gender"]
         player_cards[u_id]["gender"] = "Жінка" if old_gender == "Чоловік" else "Чоловік"
@@ -231,5 +230,50 @@ async def game_chat(message: types.Message):
     for p_id in games[g_id]["players"]:
         chat_label = "Ви" if p_id == u_id else sender_name
         chat_text = f"💬 **{chat_label}**: {message.text}"
-        try: await bot.send_message(p_id, chat_text)
-        except:
+        try: 
+            await bot.send_message(p_id, chat_text)
+        except: 
+            pass # Тепер тут є pass, IndentationError зникне
+
+@dp.callback_query(F.data.startswith("rev_"))
+async def cb_reveal(callback: types.CallbackQuery):
+    data, u_id = callback.data.split("_"), callback.from_user.id
+    mode, g_id = data[1], data[2]
+    if u_id not in games[g_id]["active_players"]: return await callback.answer("❌ Вигнані не можуть розкривати дані!", show_alert=True)
+    card = player_cards[u_id]
+    mapping = {"gen": ("Стать", card["gender"]), "age": ("Вік", card["age"]), "prof": ("Професія", card["prof"]), "health": ("Здоров'я", card["health"]), "bag": ("Багаж", card["bag"]), "psych": ("Психіка", card["psych"]), "phobia": ("Фобія", card["phobia"])}
+    label, val = mapping[mode]
+    broadcast = f"📢 **{games[g_id]['players'][u_id]}** розкриває:\n🔍 {label}: `{val}`"
+    for p_id in games[g_id]["players"]: await bot.send_message(p_id, broadcast)
+    await callback.answer()
+
+@dp.callback_query(F.data.startswith("game_vote_"))
+async def cb_vote(callback: types.CallbackQuery):
+    u_id, g_id = callback.from_user.id, callback.data.split("_")[2]
+    if u_id not in games[g_id]["active_players"]: return await callback.answer("❌ Вигнані не голосують!", show_alert=True)
+    builder = InlineKeyboardBuilder()
+    for p_id in games[g_id]["active_players"]: builder.button(text=games[g_id]["players"][p_id], callback_data=f"kick_{g_id}_{p_id}")
+    await callback.message.answer("Голосування:", reply_markup=builder.as_markup())
+    await callback.answer()
+
+@dp.callback_query(F.data.startswith("kick_"))
+async def cb_kick(callback: types.CallbackQuery):
+    _, g_id, t_id = callback.data.split("_")
+    t_id = int(t_id)
+    if t_id in games[g_id]["active_players"]:
+        games[g_id]["active_players"].remove(t_id)
+        c = player_cards[t_id]
+        reveal_msg = (f"🚪 **ГРАВЦЯ {games[g_id]['players'][t_id]} ВИГНАНО!**\n💀 **Повна картка:**\n👤 {c['gender']}, {c['age']}\n🛠 {c['prof']}\n❤️ {c['health']}\n🎒 {c['bag']}")
+        for p_id in games[g_id]["players"]: await bot.send_message(p_id, reveal_msg)
+        if len(games[g_id]["active_players"]) <= 2:
+            chance = calculate_survival_chance(g_id)
+            final = f"🏁 **ГРА ЗАВЕРШЕНА!**\n📈 Шанс вижити: **{chance}%**"
+            for p_id in games[g_id]["players"]: await bot.send_message(p_id, final)
+    await callback.answer()
+
+async def main():
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
+
+if __name__ == '__main__':
+    asyncio.run(main())
