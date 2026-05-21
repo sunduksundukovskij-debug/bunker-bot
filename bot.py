@@ -20,7 +20,7 @@ player_cards = {}
 class GameStates(StatesGroup):
     waiting_for_code = State()
 
-# --- СПИСКИ ДАНИХ (ПОВНІ ОПИСИ) ---
+# --- СПИСКИ ДАНИХ ---
 CATASTROPHES_DATA = [
     {"name": "🌋 Ядерна зима", "desc": "Радіоактивний попіл закрив сонце. Температура впала до -50°C. Рослинність вимерла, а поверхня стала радіоактивною пусткою на десятиліття.", "range": (20, 50), "needs": ["Лікар", "Інженер", "Аптечка", "🧥 Захисний костюм"]},
     {"name": "🧟 Зомбі-апокаліпсис", "desc": "Невідомий мутований вірус перетворив 99% населення на агресивних монстрів. Міста заповнені ордами мерців, що реагують на звук та запах.", "range": (2, 7), "needs": ["Поліцейський", "Мисливець", "Ніж", "Рушниця"]},
@@ -51,10 +51,9 @@ HOBBIES = ["Стрільба", "Гітара", "Садівництво", "Виж
 BAGGAGE = ["Ніж", "Аптечка", "Насіння", "Рація", "Ліхтарик", "Рушниця", "📦 Консерви", "🍶 Запас води"]
 PHOBIAS = ["Клаустрофобія", "Ахлуофобія", "Мізофобія", "Соціофобія", "Безстрашний(а)"]
 SPECIAL_ABILITIES = ["🔄 Помінятися багажем", "📝 Помінятися професією", "🛡 Імунітет від вигнання", "👁 Дізнатися секрет", "🧬 Змінити стать"]
-
 BACKPACK_ITEMS = ["🔥 Вогнемет", "💊 Антидот", "🔋 Потужна батарея", "🗺 Карта поверхні", "🧥 Захисний костюм", "📡 Супутниковий телефон"]
 
-# --- РОЗРАХУНОК ВИЖИВАННЯ ---
+# --- ДОПОМІЖНІ ФУНКЦІЇ ---
 def calculate_survival_chance(game_id):
     g = games[game_id]
     survivors = g["active_players"]
@@ -70,7 +69,6 @@ def calculate_survival_chance(game_id):
         else: chance -= 5
     return min(max(chance, 5), 100)
 
-# --- ДОПОМІЖНІ ФУНКЦІЇ ---
 def find_game_id(user_id):
     for g_id, data in games.items():
         if user_id in data["players"]: return g_id
@@ -122,10 +120,10 @@ async def cb_join(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.answer("⌨️ Введіть код гри:")
     await callback.answer()
 
-@dp.message(GameStates.waiting_for_code)
+@dp.message(GameStates.waiting_for_code, F.text.regexp(r'^\d{4}$'))
 async def process_code(message: types.Message, state: FSMContext):
     game_id = message.text.strip()
-    if game_id not in games: return await message.answer("❌ Код невірний!")
+    if game_id not in games: return await message.answer("❌ Код не знайдено!")
     u_id = message.from_user.id
     games[game_id]["players"][u_id] = message.from_user.first_name
     if u_id not in games[game_id]["active_players"]: games[game_id]["active_players"].append(u_id)
@@ -148,7 +146,24 @@ async def process_code(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer(response, reply_markup=get_reveal_keyboard(game_id), parse_mode="Markdown")
 
-# --- РОЗКРИТТЯ ХАРАКТЕРИСТИК ---
+# --- ЧАТ ТА ІНШЕ ---
+@dp.message(F.text & ~F.text.startswith('/'))
+async def game_chat(message: types.Message):
+    u_id = message.from_user.id
+    g_id = find_game_id(u_id)
+    if not g_id: return
+    
+    if games[g_id].get("waiting_for_word") and message.text.strip().upper() == "БУНКЕР":
+        games[g_id]["waiting_for_word"] = False
+        item = random.choice(BACKPACK_ITEMS)
+        player_cards[u_id]["bag"] += f", {item}"
+        for p_id in games[g_id]["players"]:
+            await bot.send_message(p_id, f"🏆 {games[g_id]['players'][u_id]} забрав з рюкзака: `{item}`!")
+        return
+
+    for p_id in games[g_id]["players"]:
+        if p_id != u_id: await bot.send_message(p_id, f"💬 **{games[g_id]['players'][u_id]}**: {message.text}")
+
 @dp.callback_query(F.data.startswith("rev_"))
 async def cb_reveal(callback: types.CallbackQuery):
     data = callback.data.split("_")
@@ -156,28 +171,10 @@ async def cb_reveal(callback: types.CallbackQuery):
     u_id = callback.from_user.id
     card = player_cards[u_id]
     name = games[g_id]["players"][u_id]
-    
-    mapping = {
-        "gen": ("Стать", card["gender"]), "age": ("Вік", card["age"]),
-        "prof": ("Професія", card["prof"]), "health": ("Здоров'я", card["health"]),
-        "bag": ("Багаж", card["bag"]), "psych": ("Психіка", card["psych"]),
-        "phobia": ("Фобія", card["phobia"])
-    }
-    
+    mapping = {"gen": ("Стать", card["gender"]), "age": ("Вік", card["age"]), "prof": ("Професія", card["prof"]), "health": ("Здоров'я", card["health"]), "bag": ("Багаж", card["bag"]), "psych": ("Психіка", card["psych"]), "phobia": ("Фобія", card["phobia"])}
     label, val = mapping[mode]
     broadcast = f"📢 **{name}** розкриває характеристику:\n🔍 {label}: `{val}`"
-    for p_id in games[g_id]["players"]:
-        await bot.send_message(p_id, broadcast)
-    await callback.answer(f"Розкрито: {label}")
-
-# --- ГОЛОСУВАННЯ ТА КІНЕЦЬ ГРИ ---
-@dp.callback_query(F.data.startswith("game_vote_"))
-async def cb_vote(callback: types.CallbackQuery):
-    g_id = callback.data.split("_")[2]
-    builder = InlineKeyboardBuilder()
-    for p_id in games[g_id]["active_players"]:
-        builder.button(text=games[g_id]["players"][p_id], callback_data=f"kick_{g_id}_{p_id}")
-    await callback.message.answer("Оберіть кого вигнати:", reply_markup=builder.as_markup())
+    for p_id in games[g_id]["players"]: await bot.send_message(p_id, broadcast)
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("kick_"))
@@ -186,15 +183,19 @@ async def cb_kick(callback: types.CallbackQuery):
     t_id = int(t_id)
     if t_id in games[g_id]["active_players"]:
         games[g_id]["active_players"].remove(t_id)
-        name = games[g_id]["players"][t_id]
-        for p_id in games[g_id]["players"]:
-            await bot.send_message(p_id, f"🚪 **Гравця {name} вигнано з бункера!**")
-
+        for p_id in games[g_id]["players"]: await bot.send_message(p_id, f"🚪 **{games[g_id]['players'][t_id]} вигнаний!**")
         if len(games[g_id]["active_players"]) <= 2:
             chance = calculate_survival_chance(g_id)
-            final = f"🏁 **ГРА ЗАВЕРШЕНА!**\n\nУ бункері залишилися: {', '.join([games[g_id]['players'][pid] for pid in games[g_id]['active_players']])}\n"
-            final += f"📈 Шанс вижити {games[g_id]['stay_time']} років: **{chance}%**"
+            final = f"🏁 **ГРА ЗАВЕРШЕНА!**\n📈 Шанс вижити: **{chance}%**"
             for p_id in games[g_id]["players"]: await bot.send_message(p_id, final)
+    await callback.answer()
+
+@dp.callback_query(F.data.startswith("game_vote_"))
+async def cb_vote(callback: types.CallbackQuery):
+    g_id = callback.data.split("_")[2]
+    builder = InlineKeyboardBuilder()
+    for p_id in games[g_id]["active_players"]: builder.button(text=games[g_id]["players"][p_id], callback_data=f"kick_{g_id}_{p_id}")
+    await callback.message.answer("Голосування:", reply_markup=builder.as_markup())
     await callback.answer()
 
 async def main():
