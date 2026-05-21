@@ -20,7 +20,7 @@ player_cards = {}
 class GameStates(StatesGroup):
     waiting_for_code = State()
 
-# --- СПИСКИ ДАНИХ (РОЗШИРЕНО КАТАСТРОФИ) ---
+# --- СПИСКИ ДАНИХ ---
 CATASTROPHES_DATA = [
     {"name": "🌋 Ядерна зима", "desc": "Радіоактивний попіл закрив сонце. Температура -50°C. Рослини не ростуть.", "range": (20, 50)},
     {"name": "🧟 Зомбі-апокаліпсис", "desc": "Невідомий вірус перетворив 99% населення на монстрів. Вулиці заповнені ордами.", "range": (2, 7)},
@@ -33,10 +33,18 @@ CATASTROPHES_DATA = [
     {"name": "🧊 Новий Льодовиковий період", "desc": "Зупинка Гольфстріму заморозила планету. Світ вкритий кілометровим шаром льоду.", "range": (50, 100)},
     {"name": "👹 Вторгнення демонів", "desc": "Відкрився розлом у вимірювання темряви. На поверхні панує хаос і магія.", "range": (10, 13)},
     {"name": "🌫 Загадковий Туман", "desc": "Світ накрив густий туман, у якому живуть істоти, що реагують на звук.", "range": (5, 10)},
-    {"name": "🔌 Глобальний блекаут", "desc": "Електрика більше не працює як фізичне явище. Технології відкинуті на століття назад.", "range": (15, 40)}
+    {"name": "🔌 Глобальний блекаут", "desc": "Електрика більше не працює як фізичне явище. А повсій планеті літає отруйний газ.", "range": (15, 40)}
 ]
 
-BUNKER_TYPES = ["🥚 Інкубаторний", "📦 Звичайний", "🌿 Гідропонний", "🏨 Люкс-бункер", "🧬 Технологічний", "🛠 Військовий"]
+BUNKER_DATA = [
+    {"name": "🥚 Інкубаторний", "desc": "Створений для відновлення популяції. Має величезні запаси генетичного матеріалу, але мало зброї."},
+    {"name": "📦 Звичайний", "desc": "Старе радянське сховище. Товсті стіни, але техніка постійно виходить з ладу."},
+    {"name": "🌿 Гідропонний", "desc": "Містить ферми для вирощування свіжої їжі. Слабкий захист, але ви точно не помрете з голоду."},
+    {"name": "🏨 Люкс-бункер", "desc": "Приватне сховище мільйонера. Є басейн і кінотеатр, але ресурси обмежені лише делікатесами."},
+    {"name": "🧬 Технологічний", "desc": "Автоматизована система з ШІ. Найкращі фільтри повітря, проте система може повстати проти вас."},
+    {"name": "🛠 Військовий", "desc": "Підземна фортеця з арсеналом. Максимальний захист, проте дуже аскетичні умови та сувора дисципліна."}
+]
+
 BUNKER_PROBLEMS = ["зламаний генератор", "протікає дах", "немає вентиляції", "✅ Стан ідеальний"]
 PROFESSIONS = ["Лікар", "Агроном", "Інженер", "Кухар", "Програміст", "Електрик", "Поліцейський", "Мисливець", "Пілот", "Хімік"]
 HEALTH_STATUS = ["Ідеальне", "Астма", "Травма ноги", "Вагітність", "Здоровий(а)", "Сліпота", "Безсоння", "Діабет", "Міцний імунітет"]
@@ -91,14 +99,16 @@ async def send_welcome(message: types.Message, state: FSMContext):
 async def cb_create(callback: types.CallbackQuery):
     game_id = str(random.randint(1000, 9999))
     cat = random.choice(CATASTROPHES_DATA)
+    bun = random.choice(BUNKER_DATA)
     stay_time = random.randint(cat["range"][0], cat["range"][1])
     games[game_id] = {
         "catastrophe": cat["name"], "cat_desc": cat["desc"], "stay_time": stay_time,
-        "bunker": random.choice(BUNKER_TYPES), "prob": random.choice(BUNKER_PROBLEMS),
+        "bunker": bun["name"], "bunker_desc": bun["desc"],
+        "prob": random.choice(BUNKER_PROBLEMS),
         "players": {}, "active_players": [], "immune_players": [], 
         "event_triggered": False, "waiting_for_word": False
     }
-    await callback.message.answer(f"🎮 **Гру #{game_id} створено!**\n\n🌍 {cat['name']}\n🔑 Код: `{game_id}`")
+    await callback.message.answer(f"🎮 **Гру #{game_id} створено!**\n\n🌍 {cat['name']}\n🛡 Бункер: {bun['name']}\n🔑 Код: `{game_id}`")
     await callback.answer()
 
 @dp.callback_query(F.data == "join_room")
@@ -129,9 +139,11 @@ async def process_code(message: types.Message, state: FSMContext):
     
     g, c = games[game_id], player_cards[u_id]
     response = (f"🚨 **ВИ У ГРІ #{game_id}**\n\n🌍 **КАТАСТРОФА:** {g['catastrophe']}\n📖 **ОПИС:** {g['cat_desc']}\n"
-                f"🛡 **БУНКЕР:** {g['bunker']} ({g['prob']})\n------------------------------\n"
+                f"🛡 **БУНКЕР:** {g['bunker']}\nℹ️ **ПРО БУНКЕР:** {g['bunker_desc']}\n⚠️ **СТАН:** {g['prob']}\n"
+                f"------------------------------\n"
                 f"💼 **ВАША КАРТКА:**\n👤 Стать: {c['gender']} | ⏳ Вік: {c['age']}\n🛠 Проф: {c['prof']}\n"
-                f"❤️ Здор: {c['health']} | 🎒 Багаж: {c['bag']}\n✨ Здібність: {c['spec']}")
+                f"❤️ Здор: {c['health']} | 🧠 Психіка: {c['psych']}\n😨 Фобія: {c['phobia']} | 🎒 Багаж: {c['bag']}\n"
+                f"🎸 Хобі: {c['hobby']} | ✨ Здібність: {c['spec']}")
     await state.clear()
     await message.answer(response, reply_markup=get_reveal_keyboard(game_id), parse_mode="Markdown")
 
@@ -263,7 +275,7 @@ async def cb_kick(callback: types.CallbackQuery):
     if t_id in games[g_id]["active_players"]:
         games[g_id]["active_players"].remove(t_id)
         c = player_cards[t_id]
-        reveal = f"🚪 **{games[g_id]['players'][t_id]} вигнаний!** Карта:\n👤 {c['gender']}, {c['age']}\n🛠 {c['prof']}\n❤️ {c['health']}\n🎒 {c['bag']}"
+        reveal = f"🚪 **{games[g_id]['players'][t_id]} вигнаний!** Карта:\n👤 {c['gender']}, {c['age']}\n🛠 {c['prof']}\n❤️ {c['health']}\n🧠 Психіка: {c['psych']}\n😨 Фобія: {c['phobia']}\n🎒 {c['bag']}"
         for p_id in games[g_id]["players"]: await bot.send_message(p_id, reveal)
     await callback.answer()
 
