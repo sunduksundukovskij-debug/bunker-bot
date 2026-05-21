@@ -20,25 +20,25 @@ player_cards = {}
 class GameStates(StatesGroup):
     waiting_for_code = State()
 
-# --- СПИСКИ ДАНИХ ---
+# --- СПИСКИ ДАНИХ (ПОВНІ ОПИСИ) ---
 CATASTROPHES_DATA = [
-    {"name": "🌋 Ядерна зима", "desc": "Радіоактивний попіл закрив сонце. Температура впала до -50°C. Рослинність вимерла, а поверхня стала пусткою.", "range": (20, 50), "needs": ["Лікар", "Інженер", "Аптечка", "🧥 Захисний костюм"]},
-    {"name": "🧟 Зомбі-апокаліпсис", "desc": "Невідомий мутований вірус перетворив 99% населення на агресивних монстрів. Міста заповнені ордами мерців.", "range": (2, 7), "needs": ["Поліцейський", "Мисливець", "Ніж", "Рушниця"]},
-    {"name": "🤖 Повстання роботів", "desc": "Штучний інтелект визнав людство загрозою. Автономні дрони та бойові машини полюють на все біологічне.", "range": (5, 12), "needs": ["Програміст", "Електрик", "📡 Супутниковий телефон", "🔋 Потужна батарея"]},
-    {"name": "🦖 Юрський реванш", "desc": "Експерименти з ДНК вийшли з-під контролю. Гігантські хижаки минулого повернулися і зруйнували людську цивілізацію.", "range": (10, 15), "needs": ["Мисливець", "Хімік", "Ніж", "🔥 Вогнемет"]},
-    {"name": "🌊 Всесвітній потоп", "desc": "Глобальне потепління миттєво розтопило льодовики. Більша частина суші пішла під воду, лишилися лише верхівки гір.", "range": (15, 25), "needs": ["Пілот", "Кухар", "🍶 Запас води", "🗺 Карта поверхні"]},
-    {"name": "👽 Інопланетне вторгнення", "desc": "Високотехнологічна раса заблокувала орбіту та почала масовану зачистку планети променями смерті.", "range": (8, 20), "needs": ["Програміст", "Лікар", "Рація", "📡 Супутниковий телефон"]},
-    {"name": "☣️ Біологічна загроза", "desc": "Військовий вірус вирвався з лабораторії. Повітря стало отруйним, без герметизації смерть настає за лічені хвилини.", "range": (3, 8), "needs": ["Хімік", "Лікар", "💊 Антидот", "🧥 Захисний костюм"]},
-    {"name": "🔌 Глобальний блекаут", "desc": "Потужний сонячний спалах вивів з ладу всі електромережі та змінив закони фізики — електрика більше не працює.", "range": (15, 40), "needs": ["Інженер", "Електрик", "Ніж", "🔥 Вогнемет"]}
+    {"name": "🌋 Ядерна зима", "desc": "Радіоактивний попіл закрив сонце. Температура впала до -50°C. Рослинність вимерла, а поверхня стала радіоактивною пусткою на десятиліття.", "range": (20, 50), "needs": ["Лікар", "Інженер", "Аптечка", "🧥 Захисний костюм"]},
+    {"name": "🧟 Зомбі-апокаліпсис", "desc": "Невідомий мутований вірус перетворив 99% населення на агресивних монстрів. Міста заповнені ордами мерців, що реагують на звук та запах.", "range": (2, 7), "needs": ["Поліцейський", "Мисливець", "Ніж", "Рушниця"]},
+    {"name": "🤖 Повстання роботів", "desc": "Штучний інтелект визнав людство загрозою для екосистеми планети. Автономні дрони та бойові мехи полюють на все біологічне.", "range": (5, 12), "needs": ["Програміст", "Електрик", "📡 Супутниковий телефон", "🔋 Потужна батарея"]},
+    {"name": "🦖 Юрський реванш", "desc": "Експерименти з ДНК вийшли з-під контролю. Гігантські хижаки минулого повернулися і за лічені місяці зруйнували людську цивілізацію.", "range": (10, 15), "needs": ["Мисливець", "Хімік", "Ніж", "🔥 Вогнемет"]},
+    {"name": "🌊 Всесвітній потоп", "desc": "Глобальне потепління миттєво розтопило льодовики. Більша частина суші пішла під воду, лишилися лише верхівки гір та плавучі міста.", "range": (15, 25), "needs": ["Пілот", "Кухар", "🍶 Запас води", "🗺 Карта поверхні"]},
+    {"name": "👽 Інопланетне вторгнення", "desc": "Високотехнологічна раса заблокувала орбіту планети та почала масовану зачистку міст променями смерті для колонізації Землі.", "range": (8, 20), "needs": ["Програміст", "Лікар", "Рація", "📡 Супутниковий телефон"]},
+    {"name": "☣️ Біологічна загроза", "desc": "Військовий вірус вирвався з секретної лабораторії. Повітря стало отруйним, без герметизації бункера смерть настає за лічені хвилини.", "range": (3, 8), "needs": ["Хімік", "Лікар", "💊 Антидот", "🧥 Захисний костюм"]},
+    {"name": "🔌 Глобальний блекаут", "desc": "Надпотужний сонячний спалах вивів з ладу всі електромережі та змінив фізику атмосфери — електрика більше не працює як фізичне явище.", "range": (15, 40), "needs": ["Інженер", "Електрик", "Ніж", "🔥 Вогнемет"]}
 ]
 
 BUNKER_DATA = [
-    {"name": "🥚 Інкубаторний", "desc": "Створений для відновлення популяції. Має запаси генетичного матеріалу."},
-    {"name": "📦 Звичайний", "desc": "Старе радянське сховище. Товсті стіни, але техніка постійно виходить з ладу."},
-    {"name": "🌿 Гідропонний", "desc": "Містить автоматизовані ферми для вирощування свіжої їжі."},
-    {"name": "🏨 Люкс-бункер", "desc": "Приватне сховище мільйонера з басейном і кінотеатром."},
-    {"name": "🧬 Технологічний", "desc": "Автоматизована система з ШІ та найкращими фільтрами повітря."},
-    {"name": "🛠 Військовий", "desc": "Підземна фортеця з арсеналом і максимальною бронею."}
+    {"name": "🥚 Інкубаторний", "desc": "Створений для відновлення популяції. Має величезні запаси генетичного матеріалу та обладнання для репродукції."},
+    {"name": "📦 Звичайний", "desc": "Старе радянське сховище. Товсті стіни, надійні двері, але техніка постійно виходить з ладу і потребує ремонту."},
+    {"name": "🌿 Гідропонний", "desc": "Містить автоматизовані ферми для вирощування свіжої їжі. Ви точно не помрете з голоду, але захист бункера слабкий."},
+    {"name": "🏨 Люкс-бункер", "desc": "Приватне сховище мільйонера з басейном, кінотеатром та винним погребом. Ресурси обмежені лише делікатесами."},
+    {"name": "🧬 Технологічний", "desc": "Автоматизована система з ШІ, найкращі фільтри повітря та переробка води. Проте система може дати збій у логіці."},
+    {"name": "🛠 Військовий", "desc": "Підземна фортеця з арсеналом. Максимальний рівень захисту від будь-яких атак, проте умови життя дуже суворі."}
 ]
 
 BUNKER_PROBLEMS = ["зламаний генератор", "протікає дах", "немає вентиляції", "✅ Стан ідеальний"]
@@ -50,16 +50,9 @@ PSYCH = ["Спокійний", "Панікер", "Агресивний", "Опт
 HOBBIES = ["Стрільба", "Гітара", "Садівництво", "Виживання", "Бокс", "Малювання", "Риболовля"]
 BAGGAGE = ["Ніж", "Аптечка", "Насіння", "Рація", "Ліхтарик", "Рушниця", "📦 Консерви", "🍶 Запас води"]
 PHOBIAS = ["Клаустрофобія", "Ахлуофобія", "Мізофобія", "Соціофобія", "Безстрашний(а)"]
-SECRET_GOALS = ["🤫 Мета: Вижити за будь-яку ціну.", "🤫 Мета: Вижити разом із Лікарем."]
 SPECIAL_ABILITIES = ["🔄 Помінятися багажем", "📝 Помінятися професією", "🛡 Імунітет від вигнання", "👁 Дізнатися секрет", "🧬 Змінити стать"]
 
-RANDOM_EVENTS = [
-    {"text": "🎒 **ЗНАЙДЕНО РЮКЗАК!**\nХто перший напише слово `БУНКЕР` у чат, отримає предмет!", "type": "backpack"},
-    {"text": "☢️ **ВИКИД РАДІАЦІЇ!**\nУсі здорові гравці отримують випадкову хворобу!", "type": "radiation"},
-    {"text": "🩺 **МЕДИЧНЕ ДИВО!**\nОдин випадковий гравець стає повністю здоровим!", "type": "miracle_cure"}
-]
-
-BACKPACK_ITEMS = ["🔥 Вогнемет", "💊 Антидот", "🔋 Потужна батарея", "🗺 Карта поверхні", "🧥 Захисний костюм", "📡 Супутинуковий телефон"]
+BACKPACK_ITEMS = ["🔥 Вогнемет", "💊 Антидот", "🔋 Потужна батарея", "🗺 Карта поверхні", "🧥 Захисний костюм", "📡 Супутниковий телефон"]
 
 # --- РОЗРАХУНОК ВИЖИВАННЯ ---
 def calculate_survival_chance(game_id):
@@ -68,7 +61,6 @@ def calculate_survival_chance(game_id):
     if not survivors: return 0
     chance = 25 
     cat_data = next((c for c in CATASTROPHES_DATA if c["name"] == g["catastrophe"]), None)
-    
     for p_id in survivors:
         c = player_cards[p_id]
         if cat_data:
@@ -76,7 +68,6 @@ def calculate_survival_chance(game_id):
             if any(item in c["bag"] for item in cat_data["needs"]): chance += 10
         if "Здоровий" in c["health"] or "Ідеальне" in c["health"]: chance += 7
         else: chance -= 5
-        if "Панікер" in c["psych"]: chance -= 5
     return min(max(chance, 5), 100)
 
 # --- ДОПОМІЖНІ ФУНКЦІЇ ---
@@ -91,12 +82,13 @@ def get_reveal_keyboard(game_id):
     builder.button(text="⏳ Вік", callback_data=f"rev_age_{game_id}")
     builder.button(text="🛠 Проф", callback_data=f"rev_prof_{game_id}")
     builder.button(text="❤️ Здор", callback_data=f"rev_health_{game_id}")
+    builder.button(text="🧠 Психіка", callback_data=f"rev_psych_{game_id}")
+    builder.button(text="😨 Фобія", callback_data=f"rev_phobia_{game_id}")
     builder.button(text="🎒 Багаж", callback_data=f"rev_bag_{game_id}")
-    builder.button(text="🎸 Хобі", callback_data=f"rev_hobby_{game_id}")
     builder.button(text="✨ Здібність", callback_data=f"use_spec_{game_id}")
     builder.button(text="🗳 Голосування", callback_data=f"game_vote_{game_id}")
     builder.button(text="⚠️ Подія", callback_data=f"game_event_{game_id}")
-    builder.adjust(3, 3, 3)
+    builder.adjust(3, 3, 2, 2)
     return builder.as_markup()
 
 # --- ОСНОВНА ЛОГІКА ---
@@ -113,14 +105,15 @@ async def cb_create(callback: types.CallbackQuery):
     game_id = str(random.randint(1000, 9999))
     cat = random.choice(CATASTROPHES_DATA)
     bun = random.choice(BUNKER_DATA)
+    stay_time = random.randint(cat["range"][0], cat["range"][1])
     games[game_id] = {
-        "catastrophe": cat["name"], "cat_desc": cat["desc"],
+        "catastrophe": cat["name"], "cat_desc": cat["desc"], "stay_time": stay_time,
         "bunker": bun["name"], "bunker_desc": bun["desc"],
         "prob": random.choice(BUNKER_PROBLEMS),
         "players": {}, "active_players": [], "immune_players": [], 
         "event_triggered": False, "waiting_for_word": False
     }
-    await callback.message.answer(f"🎮 **Гру #{game_id} створено!**\n🌍 {cat['name']}\n🔑 Код: `{game_id}`")
+    await callback.message.answer(f"🎮 **Гру #{game_id} створено!**\n\n🌍 {cat['name']}\n🔑 Код: `{game_id}`")
     await callback.answer()
 
 @dp.callback_query(F.data == "join_room")
@@ -147,7 +140,7 @@ async def process_code(message: types.Message, state: FSMContext):
     
     g, c = games[game_id], player_cards[u_id]
     response = (f"🚨 **ГРА #{game_id}**\n\n🌍 **КАТАСТРОФА:** {g['catastrophe']}\n"
-                f"📖 **ОПИС:** {g['cat_desc']}\n\n"
+                f"📖 **ОПИС:** {g['cat_desc']}\n⏳ **ТЕРМІН:** {g['stay_time']} років\n\n"
                 f"🛡 **БУНКЕР:** {g['bunker']}\nℹ️ {g['bunker_desc']}\n⚠️ Стан: {g['prob']}\n"
                 f"------------------------------\n"
                 f"💼 **ВАША КАРТКА:**\n👤 {c['gender']}, {c['age']}\n🛠 {c['prof']}\n❤️ {c['health']}\n"
@@ -155,44 +148,36 @@ async def process_code(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer(response, reply_markup=get_reveal_keyboard(game_id), parse_mode="Markdown")
 
-# --- ЧАТ ТА ПОДІЇ ---
-@dp.message(F.text & ~F.text.startswith('/'))
-async def game_chat(message: types.Message):
-    u_id = message.from_user.id
-    g_id = find_game_id(u_id)
-    if not g_id: return
-    if games[g_id].get("waiting_for_word") and message.text.strip().upper() == "БУНКЕР":
-        games[g_id]["waiting_for_word"] = False
-        item = random.choice(BACKPACK_ITEMS)
-        player_cards[u_id]["bag"] += f", {item}"
-        for p_id in games[g_id]["players"]:
-            await bot.send_message(p_id, f"🏆 {games[g_id]['players'][u_id]} забрав з рюкзака: `{item}`!")
-        return
+# --- РОЗКРИТТЯ ХАРАКТЕРИСТИК ---
+@dp.callback_query(F.data.startswith("rev_"))
+async def cb_reveal(callback: types.CallbackQuery):
+    data = callback.data.split("_")
+    mode, g_id = data[1], data[2]
+    u_id = callback.from_user.id
+    card = player_cards[u_id]
+    name = games[g_id]["players"][u_id]
+    
+    mapping = {
+        "gen": ("Стать", card["gender"]), "age": ("Вік", card["age"]),
+        "prof": ("Професія", card["prof"]), "health": ("Здоров'я", card["health"]),
+        "bag": ("Багаж", card["bag"]), "psych": ("Психіка", card["psych"]),
+        "phobia": ("Фобія", card["phobia"])
+    }
+    
+    label, val = mapping[mode]
+    broadcast = f"📢 **{name}** розкриває характеристику:\n🔍 {label}: `{val}`"
     for p_id in games[g_id]["players"]:
-        if p_id != u_id: await bot.send_message(p_id, f"💬 **{games[g_id]['players'][u_id]}**: {message.text}")
+        await bot.send_message(p_id, broadcast)
+    await callback.answer(f"Розкрито: {label}")
 
-@dp.callback_query(F.data.startswith("game_event_"))
-async def cb_event(callback: types.CallbackQuery):
-    g_id = callback.data.split("_")[2]
-    if games[g_id]["event_triggered"]: return await callback.answer("❌ Вже було!")
-    games[g_id]["event_triggered"] = True
-    event = random.choice(RANDOM_EVENTS)
-    for p_id in games[g_id]["players"]: await bot.send_message(p_id, f"🔥 **ПОДІЯ:** {event['text']}")
-    if event["type"] == "backpack": games[g_id]["waiting_for_word"] = True
-    elif event["type"] == "miracle_cure":
-        t_id = random.choice(games[g_id]["active_players"])
-        player_cards[t_id]["health"] = "Ідеальне"
-        for p_id in games[g_id]["players"]: await bot.send_message(p_id, f"🩺 {games[g_id]['players'][t_id]} вилікуваний!")
-    await callback.answer()
-
-# --- ГОЛОСУВАННЯ ТА ФІНАЛ ---
+# --- ГОЛОСУВАННЯ ТА КІНЕЦЬ ГРИ ---
 @dp.callback_query(F.data.startswith("game_vote_"))
 async def cb_vote(callback: types.CallbackQuery):
     g_id = callback.data.split("_")[2]
     builder = InlineKeyboardBuilder()
     for p_id in games[g_id]["active_players"]:
         builder.button(text=games[g_id]["players"][p_id], callback_data=f"kick_{g_id}_{p_id}")
-    await callback.message.answer("Кого вигнати?", reply_markup=builder.as_markup())
+    await callback.message.answer("Оберіть кого вигнати:", reply_markup=builder.as_markup())
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("kick_"))
@@ -201,17 +186,14 @@ async def cb_kick(callback: types.CallbackQuery):
     t_id = int(t_id)
     if t_id in games[g_id]["active_players"]:
         games[g_id]["active_players"].remove(t_id)
-        c = player_cards[t_id]
-        msg = f"🚪 **{games[g_id]['players'][t_id]} вигнаний!** Його карта:\n🛠 {c['prof']} | ❤️ {c['health']}"
-        for p_id in games[g_id]["players"]: await bot.send_message(p_id, msg)
-        
-        # ПЕРЕВІРКА КІНЦЯ ГРИ
+        name = games[g_id]["players"][t_id]
+        for p_id in games[g_id]["players"]:
+            await bot.send_message(p_id, f"🚪 **Гравця {name} вигнано з бункера!**")
+
         if len(games[g_id]["active_players"]) <= 2:
             chance = calculate_survival_chance(g_id)
-            final = f"🏁 **ГРА ЗАВЕРШЕНА!**\n\nУ бункері залишилися:\n"
-            for p_id in games[g_id]["active_players"]:
-                final += f"👤 {games[g_id]['players'][p_id]} ({player_cards[p_id]['prof']})\n"
-            final += f"\n📈 Шанс на виживання: **{chance}%**"
+            final = f"🏁 **ГРА ЗАВЕРШЕНА!**\n\nУ бункері залишилися: {', '.join([games[g_id]['players'][pid] for pid in games[g_id]['active_players']])}\n"
+            final += f"📈 Шанс вижити {games[g_id]['stay_time']} років: **{chance}%**"
             for p_id in games[g_id]["players"]: await bot.send_message(p_id, final)
     await callback.answer()
 
