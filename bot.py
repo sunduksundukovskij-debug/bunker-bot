@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 # --- НАЛАШТУВАННЯ ---
-API_TOKEN = '8422077163:AAFzmEMuPnPKI2pau5G2oK6X1Vm4o6XC4ck'
+API_TOKEN = '8422077163:AAGwLy-wgTWrFXZ2TfQqWXLYk1i92nciFMo'
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=API_TOKEN)
