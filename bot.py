@@ -158,7 +158,8 @@ async def process_code(message: types.Message, state: FSMContext):
         "gender": random.choice(GENDERS), "bag": random.choice(BAGGAGE),
         "hobby": random.choice(HOBBIES), "phobia": random.choice(PHOBIAS),
         "spec": random.choice(SPECIAL_ABILITIES), "age": random.choice(AGES),
-        "psych": random.choice(PSYCH), "spec_used": False
+        "psych": random.choice(PSYCH), "spec_used": False,
+        "revealed_stats": [] # Список характеристик, які гравець вже відкрив
     }
     
     g, c = games[game_id], player_cards[u_id]
@@ -179,6 +180,38 @@ async def process_code(message: types.Message, state: FSMContext):
     await message.answer(response, reply_markup=get_reveal_keyboard(game_id), parse_mode="Markdown")
 
 # --- ПОДІЇ ТА ЗДІБНОСТІ ---
+@dp.callback_query(F.data.startswith("game_event_"))
+async def cb_event(callback: types.CallbackQuery):
+    g_id = callback.data.split("_")[2]
+    if games[g_id]["event_triggered"]: return await callback.answer("❌ Вже було!")
+    games[g_id]["event_triggered"] = True
+    event = random.choice(RANDOM_EVENTS)
+    
+    for p_id in games[g_id]["players"]: 
+        await bot.send_message(p_id, f"🔥 **ПОДІЯ:** {event['text']}")
+    
+    if event["type"] == "backpack": 
+        games[g_id]["waiting_for_word"] = True
+    
+    elif event["type"] == "radiation":
+        for p_id in games[g_id]["active_players"]:
+            card = player_cards[p_id]
+            # Якщо гравець здоровий (або має ідеальний стан)
+            if any(word in card["health"] for word in ["Ідеальне", "Здоровий", "Міцний імунітет"]):
+                old_h = card["health"]
+                new_h = "Променева хвороба"
+                card["health"] = new_h
+                
+                # Якщо здоров'я ВЖЕ було відкрито публічно
+                if "health" in card["revealed_stats"]:
+                    msg = f"☢️ **РАДІАЦІЯ!** У гравця {games[g_id]['players'][p_id]} стан здоров'я змінився: `{old_h}` ➔ `{new_h}`!"
+                    for target in games[g_id]["players"]: await bot.send_message(target, msg)
+                else:
+                    # Якщо не було відкрито, просто повідомляємо гравця особисто
+                    await bot.send_message(p_id, f"⚠️ Через радіацію ваше здоров'я погіршилось! Тепер у вас: `{new_h}`")
+    
+    await callback.answer()
+
 @dp.callback_query(F.data.startswith("use_spec_"))
 async def cb_spec(callback: types.CallbackQuery):
     u_id, g_id = callback.from_user.id, callback.data.split("_")[2]
@@ -199,20 +232,6 @@ async def cb_spec(callback: types.CallbackQuery):
     for p_id in games[g_id]["players"]: await bot.send_message(p_id, broadcast)
     await callback.answer()
 
-@dp.callback_query(F.data.startswith("game_event_"))
-async def cb_event(callback: types.CallbackQuery):
-    g_id = callback.data.split("_")[2]
-    if games[g_id]["event_triggered"]: return await callback.answer("❌ Вже було!")
-    games[g_id]["event_triggered"] = True
-    event = random.choice(RANDOM_EVENTS)
-    for p_id in games[g_id]["players"]: await bot.send_message(p_id, f"🔥 **ПОДІЯ:** {event['text']}")
-    if event["type"] == "backpack": games[g_id]["waiting_for_word"] = True
-    elif event["type"] == "radiation":
-        for p_id in games[g_id]["active_players"]:
-            if "Ідеальне" in player_cards[p_id]["health"] or "Здоровий" in player_cards[p_id]["health"]:
-                player_cards[p_id]["health"] = "Променева хвороба"
-    await callback.answer()
-
 # --- ЧАТ ТА РОЗКРИТТЯ ---
 @dp.message(F.text & ~F.text.startswith('/'))
 async def game_chat(message: types.Message):
@@ -230,17 +249,20 @@ async def game_chat(message: types.Message):
     for p_id in games[g_id]["players"]:
         chat_label = "Ви" if p_id == u_id else sender_name
         chat_text = f"💬 **{chat_label}**: {message.text}"
-        try: 
-            await bot.send_message(p_id, chat_text)
-        except: 
-            pass # Тепер тут є pass, IndentationError зникне
+        try: await bot.send_message(p_id, chat_text)
+        except: pass
 
 @dp.callback_query(F.data.startswith("rev_"))
 async def cb_reveal(callback: types.CallbackQuery):
     data, u_id = callback.data.split("_"), callback.from_user.id
     mode, g_id = data[1], data[2]
     if u_id not in games[g_id]["active_players"]: return await callback.answer("❌ Вигнані не можуть розкривати дані!", show_alert=True)
+    
     card = player_cards[u_id]
+    # Додаємо в список розкритих, щоб події знали, чи показувати зміни всім
+    if mode not in card["revealed_stats"]:
+        card["revealed_stats"].append(mode)
+        
     mapping = {"gen": ("Стать", card["gender"]), "age": ("Вік", card["age"]), "prof": ("Професія", card["prof"]), "health": ("Здоров'я", card["health"]), "bag": ("Багаж", card["bag"]), "psych": ("Психіка", card["psych"]), "phobia": ("Фобія", card["phobia"])}
     label, val = mapping[mode]
     broadcast = f"📢 **{games[g_id]['players'][u_id]}** розкриває:\n🔍 {label}: `{val}`"
@@ -263,7 +285,15 @@ async def cb_kick(callback: types.CallbackQuery):
     if t_id in games[g_id]["active_players"]:
         games[g_id]["active_players"].remove(t_id)
         c = player_cards[t_id]
-        reveal_msg = (f"🚪 **ГРАВЦЯ {games[g_id]['players'][t_id]} ВИГНАНО!**\n💀 **Повна картка:**\n👤 {c['gender']}, {c['age']}\n🛠 {c['prof']}\n❤️ {c['health']}\n🎒 {c['bag']}")
+        reveal_msg = (f"🚪 **ГРАВЦЯ {games[g_id]['players'][t_id]} ВИГНАНО!**\n"
+                      f"💀 **Його розкрита картка:**\n"
+                      f"👤 Стать: {c['gender']}\n"
+                      f"⏳ Вік: {c['age']}\n"
+                      f"🛠 Професія: {c['prof']}\n"
+                      f"❤️ Здоров'я: {c['health']}\n"
+                      f"🧠 Психіка: {c['psych']}\n"
+                      f"😨 Фобія: {c['phobia']}\n"
+                      f"🎒 Багаж: {c['bag']}")
         for p_id in games[g_id]["players"]: await bot.send_message(p_id, reveal_msg)
         if len(games[g_id]["active_players"]) <= 2:
             chance = calculate_survival_chance(g_id)
